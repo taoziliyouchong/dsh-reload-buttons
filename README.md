@@ -26,7 +26,7 @@
 ## 安装
 
 ```sh
-dsh plugin --profile desktop add github:taoziliyouchong/dafeiyu_dsh_reload_buttons
+dsh plugin --profile desktop add github:taoziliyouchong/dsh-reload-buttons
 ```
 
 发布到 npm 之后也可以：

@@ -55,10 +55,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons"
+    "url": "https://github.com/taoziliyouchong/dsh-reload-buttons"
   },
-  "homepage": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons#readme",
+  "homepage": "https://github.com/taoziliyouchong/dsh-reload-buttons#readme",
   "bugs": {
-    "url": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons/issues"
+    "url": "https://github.com/taoziliyouchong/dsh-reload-buttons/issues"
   }
 }

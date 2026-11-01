@@ -25,7 +25,7 @@ npm pack --dry-run
 
 ## 1. 建 GitHub 仓库
 
-- 公开仓库，名字用 `dafeiyu_dsh_reload_buttons`；仓库名与 `package.json` 的包名 `dsh-reload-buttons` 可以不同，安装命令写 `github:OWNER/dafeiyu_dsh_reload_buttons`。
+- 公开仓库与包名同名：`dsh-reload-buttons`，安装命令写 `github:OWNER/dsh-reload-buttons`。
 - 推送本目录内容。
 - 给仓库加 topic：`dsh-plugin`（收录检查会看）。
 - 仓库创建要满 1 天才能进目录（自动检查），当天建好、第二天再提 PR。
@@ -42,7 +42,7 @@ npm pack --dry-run
 npm publish --access public
 ```
 
-不发 npm 也能被收录：安装命令走 GitHub（`dsh plugin --profile desktop add github:OWNER/dafeiyu_dsh_reload_buttons`）。发 npm 的好处是市场能做版本更新检查。
+不发 npm 也能被收录：安装命令走 GitHub（`dsh plugin --profile desktop add github:OWNER/dsh-reload-buttons`）。发 npm 的好处是市场能做版本更新检查。
 
 ## 4. 提交目录收录
 

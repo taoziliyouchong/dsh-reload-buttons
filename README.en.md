@@ -26,7 +26,7 @@ The desktop app treats any kernel exit as a fatal failure: if the kernel exits o
 ## Install
 
 ```sh
-dsh plugin --profile desktop add github:taoziliyouchong/dafeiyu_dsh_reload_buttons
+dsh plugin --profile desktop add github:taoziliyouchong/dsh-reload-buttons
 ```
 
 Once published to npm, this also works:
