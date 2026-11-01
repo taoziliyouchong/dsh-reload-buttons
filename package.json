@@ -1,0 +1,64 @@
+{
+  "name": "dsh-reload-buttons",
+  "version": "0.1.0",
+  "description": "在界面左上角放两个按钮：刷新界面与重启应用——刷新按需整页重载或就地重同步插件，不给白屏；重启在桌面端关掉界面壳后自动重开，在 dsh web 下结束内核交给你的守护进程。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./invariant": "./invariant.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "invariant.js",
+    "cordis.patch.yml",
+    "src",
+    "lib/client.js",
+    "assets",
+    "scripts",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": []
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "reload",
+    "refresh",
+    "restart",
+    "ui"
+  ],
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "check:client": "node scripts/build-client.mjs --check",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "node --check index.js && node --check invariant.js && node --check assets/restart-app.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons"
+  },
+  "homepage": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons#readme",
+  "bugs": {
+    "url": "https://github.com/taoziliyouchong/dafeiyu_dsh_reload_buttons/issues"
+  }
+}
