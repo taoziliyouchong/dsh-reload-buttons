@@ -39,6 +39,8 @@ Restart DSH afterwards. Replace `desktop` with your own profile name if you use 
 
 Requirements: the DSH desktop app (the restart button needs the shell to close and relaunch). On `dsh web` the reload button works and restart just ends the kernel process. Node follows DSH; no extra runtime is needed.
 
+Compatible with DSH 0.2.1-rc.5 (tested); 0.3 and later are not guaranteed.
+
 ## Where the buttons live
 
 They are mounted at `conversation.header.leading` — the left-most slot of the conversation header, a `single` slot currently owned by this plugin. Registering the same slot twice at the same priority throws, so this plugin cannot be installed alongside another one that claims that exact slot. To move them, see the comment at the top of `src/entry.jsx` (`conversation.session.header.utilities` is a `list` slot).

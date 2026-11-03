@@ -39,6 +39,8 @@ dsh plugin --profile desktop add dsh-reload-buttons
 
 要求：DSH 桌面端（重启按钮要关壳重开）。`dsh web` 下刷新可用，重启等于结束内核进程。Node 版本跟随 DSH，不需要额外运行时。
 
+兼容：DSH 0.2.1-rc.5 实测通过；0.3 起不保证。
+
 ## 界面位置
 
 按钮挂在会话头部最左的 `conversation.header.leading`——一个 single 槽，当前由本插件占用。同优先级二次注册会抛错，不能和同样占这个座位的插件一起装。要换位置见 `src/entry.jsx` 顶部注释（`conversation.session.header.utilities` 是 list 槽）。
