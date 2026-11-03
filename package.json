@@ -1,6 +1,6 @@
 {
   "name": "dsh-reload-buttons",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "在界面左上角放两个按钮：刷新界面与重启应用——刷新按需整页重载或就地重同步插件，不给白屏；重启在桌面端关掉界面壳后自动重开，在 dsh web 下结束内核交给你的守护进程。",
   "type": "module",
   "main": "index.js",
