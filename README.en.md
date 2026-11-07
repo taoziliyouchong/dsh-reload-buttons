@@ -39,7 +39,7 @@ Restart DSH afterwards. Replace `desktop` with your own profile name if you use 
 
 Requirements: the DSH desktop app (the restart button needs the shell to close and relaunch). On `dsh web` the reload button works and restart just ends the kernel process. Node follows DSH; no extra runtime is needed.
 
-Compatible with the DSH 0.2.1 line (alpha / rc / stable); 0.3 and later are not guaranteed.
+Compatible with DSH 0.2.2-rc.1; later versions are untested.
 
 ## Where the buttons live
 
