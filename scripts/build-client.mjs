@@ -34,6 +34,8 @@ const bundled = await build({
   platform: 'browser',
   jsx: 'automatic',
   target: ['chrome120'],
+  // 保留中文字面量：产物要能按原文核对文案，别让构建把中文转成 \uXXXX
+  charset: 'utf8',
   // react 由 DSH 客户端模块表提供，不能打进产物
   external: ['react', 'react/jsx-runtime'],
   write: false,

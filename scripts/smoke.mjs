@@ -28,7 +28,6 @@ const fail = (label, why) => {
 /** 1. 包结构 */
 const REQUIRED = [
   'index.js',
-  'invariant.js',
   'cordis.patch.yml',
   'assets/restart-app.mjs',
   'src/entry.jsx',
@@ -74,11 +73,14 @@ try {
 }
 
 const ROUTE = '/' + pkg.name + '/api/restart'
-if (routes.length !== 1) fail('宿主半边', '应注册 1 条路由，实际 ' + routes.length)
-else if (routes[0].path !== ROUTE) fail('宿主半边', '路由路径是 ' + routes[0].path + '，应为 ' + ROUTE)
-else if (routes[0].kind !== 'exact') fail('宿主半边', '路由 kind 是 ' + routes[0].kind + '，应为 exact')
+const PING = '/' + pkg.name + '/api/ping'
+const routeOf = (path) => routes.find((route) => route.path === path)
+if (routes.length !== 2) fail('宿主半边', '应注册 2 条路由，实际 ' + routes.length)
+else if (!routeOf(PING)) fail('宿主半边', '缺探测路由 ' + PING)
+else if (!routeOf(ROUTE)) fail('宿主半边', '缺重启路由 ' + ROUTE)
+else if (routeOf(PING).kind !== 'exact' || routeOf(ROUTE).kind !== 'exact') fail('宿主半边', '路由 kind 应为 exact')
 else if (effects.length !== 1) fail('宿主半边', '应登记 1 个 effect，实际 ' + effects.length)
-else ok('宿主半边', 'POST ' + ROUTE + ' 已注册（kind=exact）')
+else ok('宿主半边', 'GET ' + PING + '、POST ' + ROUTE + ' 已注册（kind=exact）')
 
 /** 3. 路由鉴权 */
 function call(handler, req) {
@@ -98,19 +100,23 @@ function call(handler, req) {
   return res
 }
 
-if (routes.length === 1) {
-  const handler = routes[0].handler
+if (routes.length === 2) {
+  const restart = routeOf(ROUTE).handler
+  const ping = routeOf(PING).handler
   const cases = [
-    { label: '非回环地址被拒', req: { socket: { remoteAddress: '10.1.2.3' }, method: 'POST' }, want: 403 },
-    { label: 'GET 被拒', req: { socket: { remoteAddress: '127.0.0.1' }, method: 'GET' }, want: 405 },
-    { label: '::1 本机照常走 POST 分支', req: { socket: { remoteAddress: '::1' }, method: 'GET' }, want: 405 },
-    { label: 'IPv4 映射地址被认作本机', req: { socket: { remoteAddress: '::ffff:127.0.0.1' }, method: 'GET' }, want: 405 },
+    { label: '非回环地址被拒', handler: restart, req: { socket: { remoteAddress: '10.1.2.3' }, method: 'POST' }, want: 403 },
+    { label: 'GET 打重启被拒', handler: restart, req: { socket: { remoteAddress: '127.0.0.1' }, method: 'GET' }, want: 405 },
+    { label: '::1 本机照常走 POST 分支', handler: restart, req: { socket: { remoteAddress: '::1' }, method: 'GET' }, want: 405 },
+    { label: 'IPv4 映射地址被认作本机', handler: restart, req: { socket: { remoteAddress: '::ffff:127.0.0.1' }, method: 'GET' }, want: 405 },
+    { label: '探测路由非回环被拒', handler: ping, req: { socket: { remoteAddress: '10.1.2.3' }, method: 'GET' }, want: 403 },
+    { label: '探测路由 POST 被拒', handler: ping, req: { socket: { remoteAddress: '127.0.0.1' }, method: 'POST' }, want: 405 },
+    { label: '探测路由本机 GET 放行', handler: ping, req: { socket: { remoteAddress: '127.0.0.1' }, method: 'GET' }, want: 200 },
   ]
   let passed = 0
   for (const item of cases) {
     let res
     try {
-      res = call(handler, item.req)
+      res = call(item.handler, item.req)
     } catch (error) {
       fail('路由鉴权', item.label + '：handler 抛错 ' + error.message)
       continue
@@ -127,7 +133,11 @@ const idMatch = /^\s*id:\s*"([^"]+)"/m.exec(client)
 if (!idMatch) fail('客户端产物', '外壳里找不到 id')
 else if (idMatch[1] !== pkg.name) fail('客户端产物', '外壳 id 是 ' + idMatch[1] + '，应等于包名 ' + pkg.name)
 else if (!client.includes(ROUTE)) fail('客户端产物', '产物里没有路由 ' + ROUTE + '（源码改了但没重新构建）')
+else if (!client.includes(PING)) fail('客户端产物', '产物里没有探测路由 ' + PING + '（源码改了但没重新构建）')
 else if (!client.includes(pkg.name + ':refreshed')) fail('客户端产物', '产物里没有刷新标记（源码改了但没重新构建）')
+else if (!client.includes('getSnapshot')) fail('客户端产物', '产物里没有读取替换结果（源码改了但没重新构建）')
+else if (!client.includes('命令行启动')) fail('客户端产物', '产物里没有区分命令行版的文案（源码改了但没重新构建）')
+else if (client.includes('关掉界面，几秒后自动重开')) fail('客户端产物', '产物里还带着旧的确认框文案')
 else ok('客户端产物', 'id=' + pkg.name + '，' + Buffer.byteLength(client, 'utf8') + ' 字节')
 
 console.log('')

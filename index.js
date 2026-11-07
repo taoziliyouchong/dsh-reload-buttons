@@ -25,6 +25,8 @@ export const name = 'dsh-reload-buttons'
 export const inject = []
 
 const ROUTE = '/dsh-reload-buttons/api/restart'
+/** 探测路由：客户端点重启前先确认宿主半边在，失败时才能给出可读原因。 */
+const PING_ROUTE = '/dsh-reload-buttons/api/ping'
 const WORKER = fileURLToPath(new URL('./assets/restart-app.mjs', import.meta.url))
 
 /** 桌面端＝宿主跑在 Electron 的 Node 模式里。 */
@@ -94,34 +96,50 @@ function sendJson(res, code, value) {
   res.end(JSON.stringify(value))
 }
 
-/** 注册重启路由。 */
+/** 注册探测路由与重启路由。 */
 export function apply(ctx) {
   const mount = (hostCtx) => {
     const webServer = hostCtx
       && (hostCtx.webServer || (typeof hostCtx.get === 'function' ? hostCtx.get('webServer') : undefined))
     if (!webServer || typeof webServer.register !== 'function') return
-    ctx.effect(() => webServer.register({
-      kind: 'exact',
-      path: ROUTE,
-      handler: (req, res) => {
-        if (!isLocal(req)) return sendJson(res, 403, { ok: false, error: '只接受本机请求' })
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: '只支持 POST' })
-        if (isDesktop()) {
-          let handedOff = false
-          try {
-            handedOff = handOffRestart(webServer.port)
-          } catch {
-            handedOff = false
+    ctx.effect(() => {
+      // 探测优先：客户端点重启前先问一句宿主在不在，失败时才能给出可读原因。
+      const offPing = webServer.register({
+        kind: 'exact',
+        path: PING_ROUTE,
+        handler: (req, res) => {
+          if (!isLocal(req)) return sendJson(res, 403, { ok: false, error: '只接受本机请求' })
+          if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: '只支持 GET' })
+          sendJson(res, 200, { ok: true })
+        },
+      })
+      const offRestart = webServer.register({
+        kind: 'exact',
+        path: ROUTE,
+        handler: (req, res) => {
+          if (!isLocal(req)) return sendJson(res, 403, { ok: false, error: '只接受本机请求' })
+          if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: '只支持 POST' })
+          if (isDesktop()) {
+            let handedOff = false
+            try {
+              handedOff = handOffRestart(webServer.port)
+            } catch {
+              handedOff = false
+            }
+            sendJson(res, 200, { ok: true, mode: handedOff ? 'relaunch' : 'exit' })
+            // 脚本没起来就别干等：退回内核自己退出（会弹恢复框，但至少不会卡死）
+            if (!handedOff) setTimeout(shutdownAndExit, 400)
+            return
           }
-          sendJson(res, 200, { ok: true, mode: handedOff ? 'relaunch' : 'exit' })
-          // 脚本没起来就别干等：退回内核自己退出（会弹恢复框，但至少不会卡死）
-          if (!handedOff) setTimeout(shutdownAndExit, 400)
-          return
-        }
-        sendJson(res, 200, { ok: true, mode: 'exit' })
-        setTimeout(shutdownAndExit, 400)
-      },
-    }), 'dsh-reload-buttons: restart route')
+          sendJson(res, 200, { ok: true, mode: 'exit' })
+          setTimeout(shutdownAndExit, 400)
+        },
+      })
+      return () => {
+        offPing()
+        offRestart()
+      }
+    }, 'dsh-reload-buttons: restart routes')
   }
   // apply 期直接取 ctx.get('webServer') 往往还没就绪，优先放进 inject 回调等它到位；
   // 桩 ctx（冒烟、测试）没有 inject，退回直接取（拿不到就什么也不做，不影响加载）。

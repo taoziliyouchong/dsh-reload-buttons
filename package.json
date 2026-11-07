@@ -1,18 +1,16 @@
 {
   "name": "dsh-reload-buttons",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "在 DSH 界面左上角放两个按钮：刷新界面、重启应用。",
   "type": "module",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
-    "./invariant": "./invariant.js",
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "files": [
     "index.js",
-    "invariant.js",
     "cordis.patch.yml",
     "src",
     "lib/client.js",
@@ -48,7 +46,7 @@
     "build:client": "node scripts/build-client.mjs",
     "check:client": "node scripts/build-client.mjs --check",
     "smoke": "node scripts/smoke.mjs",
-    "check": "node --check index.js && node --check invariant.js && node --check assets/restart-app.mjs"
+    "check": "node --check index.js && node --check assets/restart-app.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.1"

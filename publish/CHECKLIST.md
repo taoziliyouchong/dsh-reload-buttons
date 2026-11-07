@@ -19,7 +19,7 @@ npm run smoke           # 结构 / 注册 / 鉴权 / 产物 四关
 npm pack --dry-run
 ```
 
-包里只应出现：`index.js`、`invariant.js`、`cordis.patch.yml`、`src/`、`lib/client.js`、`assets/`、`scripts/`、两个 README、`LICENSE`。`node_modules/`、`publish/`、`*.tgz` 都不该进包。
+包里只应出现：`index.js`、`cordis.patch.yml`、`src/`、`lib/client.js`、`assets/`、`scripts/`、两个 README、`LICENSE`。`node_modules/`、`publish/`、`*.tgz` 都不该进包。
 
 **`lib/client.js` 必须提交进 git。** 它不是构建垃圾：从 GitHub 安装时不跑构建，缺了它界面不会加载（宿主半边照常工作，只有按钮不出现）。`.gitignore` 里不忽略 `lib/`。
 

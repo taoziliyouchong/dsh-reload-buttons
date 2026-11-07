@@ -15,6 +15,7 @@
 import { useState } from 'react'
 
 const ROUTE = '/dsh-reload-buttons/api/restart'
+const PING_ROUTE = '/dsh-reload-buttons/api/ping'
 
 /** 把路由拼成当前页面挂载点下的路径（锚 document.baseURI，兼容子路径部署）。 */
 function api(path) {
@@ -75,11 +76,32 @@ async function probeBootBundles() {
   return { ok: results.every((r) => r.ok), total: results.length, bad: results.filter((r) => !r.ok) }
 }
 
-/** 请求宿主重启。界面随壳一起关掉，所以连接断掉是预期，不当错误。 */
+/**
+ * 请求宿主重启：先探一次宿主在不在，再发重启请求。
+ * 返回 { ok, reason }。界面随壳一起关掉时连接会断，那是预期，按成功算。
+ */
 async function requestRestart() {
+  let alive = false
   try {
-    await fetch(api(ROUTE), { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
-  } catch (e) { /* 界面壳被关掉时连接会断，属预期 */ }
+    const res = await fetch(api(PING_ROUTE), { method: 'GET', cache: 'no-store' })
+    alive = res.ok
+  } catch {
+    alive = false
+  }
+  if (!alive) return { ok: false, reason: '宿主半边没响应（插件可能没装全，或宿主已停止）' }
+  try {
+    const res = await fetch(api(ROUTE), { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+    if (res.ok) return { ok: true }
+    let reason = 'HTTP ' + res.status
+    try {
+      const data = await res.json()
+      if (data && data.error) reason = data.error
+    } catch { /* 回包不是 JSON 就用状态码 */ }
+    return { ok: false, reason }
+  } catch {
+    // 桌面端重启时壳先关，连接断在这里属预期：请求已经送到宿主。
+    return { ok: true }
+  }
 }
 
 /** 顶部浮层：先提示「正在刷新…」，重载回来后再给一句「界面已刷新」，让人知道这一下确实生效了。 */
@@ -156,15 +178,22 @@ function freshGraph() {
   })
 }
 
-/** 清单过期时：按宿主当前图就地对齐插件条目——不重载整页、不关应用。 */
+/**
+ * 清单过期时：按宿主当前图就地对齐插件条目——不重载整页、不关应用。
+ * 返回 { ok, reason }：sync 只管执行，某个条目加载失败时它把失败记在内部状态里，
+ * 不读这个状态就会把「替换失败」报成「已刷新」。
+ */
 async function resyncPlugins() {
   const modules = moduleSystem()
   const entries = modules && modules.entries
-  if (!entries || typeof entries.sync !== 'function') return false
+  if (!entries || typeof entries.sync !== 'function') return { ok: false, reason: '当前界面不支持就地刷新' }
   const graph = await freshGraph()
-  if (!graph) return false
+  if (!graph) return { ok: false, reason: '没拿到宿主的插件清单' }
   await entries.sync(graph)
-  return true
+  const state = entries.state && typeof entries.state.getSnapshot === 'function' ? entries.state.getSnapshot() : null
+  const failure = state && Array.isArray(state.failures) ? state.failures[0] : undefined
+  if (failure) return { ok: false, reason: '插件加载失败：' + (failure.message || failure.id) }
+  return { ok: true }
 }
 
 /** 左上一行两个按钮。 */
@@ -191,22 +220,24 @@ function HeaderButtons() {
     }
     // 清单过期：整页重载会白屏（旧 rev 已 404）。改为就地重载插件，同行样给可见反馈。
     const hide = overlay('正在刷新…')
-    let resynced = false
+    let resynced = { ok: false, reason: '未知原因' }
     try {
       resynced = await resyncPlugins()
-    } catch {
-      resynced = false
+    } catch (error) {
+      resynced = { ok: false, reason: String((error && error.message) || error) }
     }
     hide()
-    overlay(resynced ? '界面已刷新' : '刷新失败：清单已过期，请用「重启」', 2200)
+    overlay(resynced.ok ? '界面已刷新' : '刷新失败：' + resynced.reason + '；请用「重启」', 2600)
     setChecking(false)
   }
 
   async function restart() {
     if (restarting) return
-    if (!window.confirm('重启应用？界面会关掉，几秒后自动重开；若弹出「应用无法使用」窗口，点其中的「重启」即可。')) return
+    if (!window.confirm('重启应用？界面会关掉：桌面版会在几秒后自动重开；命令行启动（dsh web）的进程会直接退出，需要你手动再启动。若弹出「应用无法使用」窗口，点其中的「重启」即可。')) return
     setRestarting(true)
-    await requestRestart()
+    const result = await requestRestart()
+    setRestarting(false)
+    if (result && result.ok === false) overlay('重启失败：' + result.reason, 3200)
   }
 
   return (
@@ -223,7 +254,7 @@ function HeaderButtons() {
       <button
         type="button"
         style={Object.assign({}, btn, restarting ? { opacity: 0.35, cursor: 'default' } : null)}
-        title="重启应用（关掉界面，几秒后自动重开）"
+        title="重启应用（桌面版自动重开；命令行版需手动再启动）"
         aria-label="重启应用"
         onClick={() => void restart()}
       >
