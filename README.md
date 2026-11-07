@@ -39,7 +39,7 @@ dsh plugin --profile desktop add dsh-reload-buttons
 
 要求：DSH 桌面端（重启按钮要关壳重开）。`dsh web` 下刷新可用，重启等于结束内核进程。Node 版本跟随 DSH，不需要额外运行时。
 
-兼容：DSH 0.2.2-rc.1 验证通过；更高版本未验证。
+兼容：DSH 0.2.1-alpha.3 ～ 0.2.2-rc.1（本机实际运行验证过的最高版本）；更高版本未验证。
 
 ## 界面位置
 
@@ -50,6 +50,7 @@ dsh plugin --profile desktop add dsh-reload-buttons
 - 宿主半边注册一条 `POST /dsh-reload-buttons/api/restart`：只接受回环地址（`127.*`、`::1`、`::ffff:127.*`），只接受 POST。远程访问的 DSH 上点重启会被 403 拒绝。
 - 桌面端把重启交棒给 `assets/restart-app.mjs`（detached spawn）：等 1.2 秒让 HTTP 响应交回浏览器 → 关掉 Electron 主进程 → 等端口释放（12 秒不放就结束内核）→ 拉起 exe 并按新进程 pid 探活（8 秒不稳就再试一次）。
 - 桌面端每次启动端口都不同，探活只看进程 pid，不看端口。
+- 拉起 exe 之前顺手清一次累积的 `dsh-auth-*` 会话 Cookie（超过 30 条才清，先备份）：桌面端每次启动换端口，Cookie 名里编着「域名:端口」，而 Cookie 按域名存、不区分端口——每启动一次多一条，堆到约 70 条、请求头过 16 KB 后，下次启动会报 `desktop welcome: Web authentication failed`。清不了只记日志，不影响重启。
 - 重启日志写在 `$DSH_HOME/logs/dsh-reload-buttons-restart.log`。
 - 刷新按钮是纯浏览器侧行为，不需要宿主。
 - 不联网、不上传任何内容。

@@ -79,7 +79,45 @@ if (!released) {
 }
 log(`port ${released ? 'released' : 'STILL BUSY'}`)
 
-// 4) 重新拉起应用
+// 4) 清一次累积的浏览器会话 Cookie。此刻应用已完全退出，数据库没人占着。
+//    DSH 每次启动换端口，Cookie 名里编着「域名:端口」，而 Cookie 按域名存、不区分端口，
+//    所以每启动一次多一条；堆到约 70 条、请求头过 16 KB，下次启动会报认证失败。
+async function pruneAuthCookies() {
+  try {
+    const { DatabaseSync } = await import('node:sqlite')
+    const { join } = await import('node:path')
+    const { homedir } = await import('node:os')
+    const { existsSync, copyFileSync } = await import('node:fs')
+    const dbPath = join(homedir(), 'AppData', 'Roaming', '@deepseek-ai', 'dsh-desktop', 'Network', 'Cookies')
+    if (!existsSync(dbPath)) {
+      log('cookie db missing, skip')
+      return
+    }
+    const db = new DatabaseSync(dbPath)
+    const count = () => db.prepare(
+      "select count(*) as n from cookies where host_key = '127.0.0.1' and name like 'dsh-auth-%'",
+    ).get().n
+    const before = count()
+    if (before <= 30) {
+      db.close()
+      log(`cookies ${before} <= 30, skip`)
+      return
+    }
+    const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+    copyFileSync(dbPath, `${dbPath}.bak-${stamp}`)
+    db.exec("delete from cookies where host_key = '127.0.0.1' and name like 'dsh-auth-%'")
+    db.exec('vacuum')
+    const after = count()
+    db.close()
+    log(`cookies pruned ${before} -> ${after}`)
+  } catch (error) {
+    // 清不了不影响重启：重启本身必须先完成。
+    log(`cookie prune skipped: ${error.message}`)
+  }
+}
+await pruneAuthCookies()
+
+// 5) 重新拉起应用
 if (!exePath) {
   log('no exe path, stop')
   process.exit(1)
@@ -121,7 +159,7 @@ async function waitAlive(pid, ms) {
 
 const first = launchApp('first launch')
 
-// 5) 起来了吗？起不来就再试一次（第二次失败只能让用户手动开）
+// 6) 起来了吗？起不来就再试一次（第二次失败只能让用户手动开）
 if (await waitAlive(first.pid, 8000)) {
   log(`ok: app is back (pid ${first.pid} alive)`)
   process.exit(0)
