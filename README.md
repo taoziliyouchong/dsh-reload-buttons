@@ -39,7 +39,7 @@ dsh plugin --profile desktop add dsh-reload-buttons
 
 要求：DSH 桌面端（重启按钮要关壳重开）。`dsh web` 下刷新可用，重启等于结束内核进程。Node 版本跟随 DSH，不需要额外运行时。
 
-要求 DSH >= 0.2.1-alpha.3；实测 0.2.1-alpha.3、0.2.2-rc.1，更高版本未验证。
+要求 DSH >= 0.2.1-alpha.1（下限按用到的服务与槽在 alpha.1 已存在推定）；实测 0.2.1-alpha.3、0.2.2-rc.1，更高版本未验证。
 
 ## 界面位置
 
