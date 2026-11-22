@@ -16,8 +16,10 @@ import { connect } from 'node:net'
 import { appendFileSync } from 'node:fs'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const [parentPid, exePath, hostPid, portArg, logPath] = process.argv.slice(2)
+const [parentPid, exePath, hostPid, portArg, logPath, delayArg] = process.argv.slice(2)
 const port = Number(portArg || 19387)
+/** 动手前等多久：按钮走 1.2 秒（只要把 HTTP 响应交回去），模型调用走命令行传入的秒数（要等回复送达）。 */
+const delayMs = Math.min(600000, Math.max(0, Number(delayArg || 1200)))
 
 function log(line) {
   try {
@@ -49,10 +51,10 @@ function kill(pid) {
   }
 }
 
-log(`start parent=${parentPid} host=${hostPid} exe=${exePath}`)
+log(`start parent=${parentPid} host=${hostPid} exe=${exePath} delay=${delayMs}ms`)
 
-// 1) 等宿主把 HTTP 响应交回浏览器（否则按钮会看到连接被掐断）
-await sleep(1200)
+// 1) 等调用方把回复／HTTP 响应交出去（否则会看到连接被掐断）
+await sleep(delayMs)
 
 // 2) 关掉界面壳。主进程一没有，内核的 IPC 断开会自动走优雅收尾，也没有东西能弹恢复框。
 kill(Number(parentPid))

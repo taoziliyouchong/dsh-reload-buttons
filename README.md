@@ -39,7 +39,7 @@ dsh plugin --profile desktop add dsh-reload-buttons
 
 要求：DSH 桌面端（重启按钮要关壳重开）。`dsh web` 下刷新可用，重启等于结束内核进程。Node 版本跟随 DSH，不需要额外运行时。
 
-要求 DSH >= 0.2.1-alpha.1（下限按用到的服务与槽在 alpha.1 已存在推定）；实测 0.2.1-alpha.3、0.2.2-rc.1，更高版本未验证。
+要求 DSH >= 0.2.1-alpha.1。
 
 ## 界面位置
 
@@ -48,7 +48,8 @@ dsh plugin --profile desktop add dsh-reload-buttons
 ## 机制
 
 - 宿主半边注册一条 `POST /dsh-reload-buttons/api/restart`：只接受回环地址（`127.*`、`::1`、`::ffff:127.*`），只接受 POST。远程访问的 DSH 上点重启会被 403 拒绝。
-- 桌面端把重启交棒给 `assets/restart-app.mjs`（detached spawn）：等 1.2 秒让 HTTP 响应交回浏览器 → 关掉 Electron 主进程 → 等端口释放（12 秒不放就结束内核）→ 拉起 exe 并按新进程 pid 探活（8 秒不稳就再试一次）。
+- 另注册一条工具 `dsh-restart`：模型可以在这一轮末尾自己调重启，`delaySeconds` 默认 30 秒（给回复送达留时间）。按钮走 1.2 秒，工具走传进来的秒数，同一个交棒脚本。
+- 桌面端把重启交棒给 `assets/restart-app.mjs`（detached spawn）：等设定延迟让 HTTP 响应／回复交出去 → 关掉 Electron 主进程 → 等端口释放（12 秒不放就结束内核）→ 拉起 exe 并按新进程 pid 探活（8 秒不稳就再试一次）。
 - 桌面端每次启动端口都不同，探活只看进程 pid，不看端口。
 - 拉起 exe 之前顺手清一次累积的 `dsh-auth-*` 会话 Cookie（超过 30 条才清，先备份）：桌面端每次启动换端口，Cookie 名里编着「域名:端口」，而 Cookie 按域名存、不区分端口——每启动一次多一条，堆到约 70 条、请求头过 16 KB 后，下次启动会报 `desktop welcome: Web authentication failed`。清不了只记日志，不影响重启。
 - 重启日志写在 `$DSH_HOME/logs/dsh-reload-buttons-restart.log`。
